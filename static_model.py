@@ -78,7 +78,7 @@ class StaticModel(ABC):
         s = self.sigma
         return ( (Istar-self.N+1)**(1/s)*self.K**(1-1/s) + A**(1/s)*L**(1-1/s) ) ** (s/(s-1)) 
 
-    def figure3(self):
+    def figure3(self,save=False):
         # Suppress divide by zero warnings
         with np.errstate(divide='ignore', invalid='ignore'):
             omega_range = np.linspace(0, 3, 100)
@@ -96,8 +96,10 @@ class StaticModel(ABC):
         plt.plot(Istar_above, gamma_over_K_above, ":",color="blue")
         plt.arrow(self.I, gamma_over_K_above[0], 0, omega_range[-1]-gamma_over_K_above[0], head_width=0.02, head_length=0.1, color="blue")
         plt.plot(self.equilibrium_Istar, self.equilibrium_omega, 'ko', label='Equilibrium')
-        plt.xlabel('Istar')
-        plt.ylabel('omega')
+        plt.xlabel(r'Task index $i$')
+        plt.ylabel(r'$\omega=W/RK$')
         plt.text(Istar_range[-1]-0.2, omega_range[-1]-0.5, f"Equilibrium:\nW={self.equilibrium_W:.2f}\nR={self.equilibrium_R:.2f}\nL={self.equilibrium_L:.2f}\nY={self.equilibrium_Y:.2f}")
+        if save:
+            plt.savefig("figure3.svg")
         plt.show()
         return

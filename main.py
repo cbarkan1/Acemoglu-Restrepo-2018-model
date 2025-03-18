@@ -31,10 +31,10 @@ class Model1(StaticModel):
 
 
 if __name__ == "__main__":
-    I = 0
+    I = .5
     K = 0.8
     sigma = 0.5
-    N = .6
+    N = 1
     a = 1
     b = 1
 
