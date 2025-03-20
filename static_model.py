@@ -10,10 +10,17 @@ class StaticModel(ABC):
     This class makes the following assumptions:
     - Assumption 1 (gamma(i) is increasing)
     - Assumption 2 (eta=0 and Bbar=1)
-    - Btilde=1
+    - Btilde=1 (just a choice of units)
+
+    TODO: Calculate K->0 limit, and program it in.
     """
     def __init__(self, I, K, sigma, N):
-        assert 0<N-I<1, "N-I must be between 0 and 1"
+        assert N-1<I<N, "I must be between N-1 and N"
+        assert sigma>0
+        assert K>=0
+        # NOTE: Everything works fine if I>N, but there are issues if I is too low. I think this is
+        # because assumption 3 will be violated if I is too low. As I goes down, wage goes up relative
+        # to rent, so assumption 3 will eventually be broken.
         self.I = I
         self.K = K
         self.sigma = sigma
@@ -43,11 +50,16 @@ class StaticModel(ABC):
         ...
 
     def find_equilibrium(self):
+        #TODO: revisit assumption 3. I think my code can be modified to remove this assumption.
         Istar, omega = self.find_Istar_and_omega()
         L = self.Ls(omega)
         Y = self.find_Y(Istar, L)
         R = (self.K/(Y * (Istar-self.N+1)))**(-1/self.sigma)
         W = omega * R * self.K
+
+        # Check assumption 3:
+        assert R>W/self.gamma(self.N), "K violates assumption 3. Try decreasing K."
+
         self.equilibrium_Istar = Istar
         self.equilibrium_omega = omega
         self.equilibrium_L = L
@@ -61,8 +73,9 @@ class StaticModel(ABC):
         return A/(Istar-self.N+1)*omega**(-self.sigma) - self.Ls(omega)/self.K**(1-self.sigma)
 
     def find_Istar_and_omega(self)->tuple[float, float]:
+        # TODO: I should improve the brackets (i.e. bounds of search) in the root_scalar()
         F1 = lambda Itilde: self.eq9_over_eq8(Itilde, self.gamma(Itilde)/self.K)
-        Itilde = root_scalar(F1, bracket=[1e-5, 10]).root
+        Itilde = root_scalar(F1, bracket=[self.N-1+1e-5, 10]).root
         omega_at_Itilde = self.gamma(Itilde)/self.K
         if Itilde <= self.I:
             Istar = Itilde
@@ -70,7 +83,8 @@ class StaticModel(ABC):
         else:
             Istar = self.I
             F2 = lambda omega: self.eq9_over_eq8(self.I, omega)
-            omega = root_scalar(F2, bracket=[1e-5, 10]).root
+            print("here")
+            omega = root_scalar(F2, bracket=[1e-5, 200]).root
         return Istar, omega
 
     def find_Y(self, Istar, L):
@@ -79,10 +93,10 @@ class StaticModel(ABC):
         return ( (Istar-self.N+1)**(1/s)*self.K**(1-1/s) + A**(1/s)*L**(1-1/s) ) ** (s/(s-1)) 
 
     def figure3(self,save=False):
-        # Suppress divide by zero warnings
+        omega_range = np.linspace(0,self.gamma(self.N)/self.K * 1.2)
+        Istar_range = np.linspace(self.N-1, self.N, 100)
+        # Suppress divide by zero warnings:
         with np.errstate(divide='ignore', invalid='ignore'):
-            omega_range = np.linspace(0, 3, 100)
-            Istar_range = np.linspace(self.N-1, self.N, 100)
             Istar_mesh, omega_mesh = np.meshgrid(Istar_range, omega_range)
             F1 = self.eq9_over_eq8(Istar_mesh, omega_mesh)
         
@@ -98,7 +112,17 @@ class StaticModel(ABC):
         plt.plot(self.equilibrium_Istar, self.equilibrium_omega, 'ko', label='Equilibrium')
         plt.xlabel(r'Task index $i$')
         plt.ylabel(r'$\omega=W/RK$')
-        plt.text(Istar_range[-1]-0.2, omega_range[-1]-0.5, f"Equilibrium:\nW={self.equilibrium_W:.2f}\nR={self.equilibrium_R:.2f}\nL={self.equilibrium_L:.2f}\nY={self.equilibrium_Y:.2f}")
+        
+        # Plotting Text of Equilibrium Quantities:
+        xlim = plt.xlim()
+        ylim = plt.ylim()
+        text_x = xlim[0] + 0.95 * (xlim[1] - xlim[0])
+        text_y = ylim[0] + 0.95 * (ylim[1] - ylim[0])
+        plt.text(text_x, text_y, 
+                f"Equilibrium:\nW={self.equilibrium_W:.2f}\nR={self.equilibrium_R:.2f}\nL={self.equilibrium_L:.2f}\nY={self.equilibrium_Y:.2f}",
+                horizontalalignment='right',
+                verticalalignment='top')
+        
         if save:
             plt.savefig("figure3.svg")
         plt.show()

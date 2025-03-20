@@ -25,19 +25,22 @@ class Model1(StaticModel):
         return 1/(self.b*self.sigma) * ( (self.a+self.b*self.N)**self.sigma - (self.a+self.b*Istar)**self.sigma )
 
     def Ls(self, omega):
-        """Labor supply with nu(L)= 1/2 * L^2"""
+        """
+        Labor supply with nu(L)= 1/2 * L^2. This is the solution to nu'(L)=W/(RK+WL).
+        omega = W/(R*K)
+        """
         L = (-1/omega + (1/(omega**2) + 4)**0.5)/2
         return L
 
 
 if __name__ == "__main__":
-    I = .5
-    K = 0.8
+    I = .7
+    K = .6
     sigma = 0.5
-    N = 1
-    a = 1
-    b = 1
+    N = 1.2
+    a = .5
+    b = .8
 
     model = Model1(I, K, sigma, N, a, b)
     model.find_equilibrium()
-    model.figure3()
+    model.figure3(save=True)
